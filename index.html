@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Simple Todo List</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 400px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 18px;
+    }
+    form {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+    li:last-child {
+      border-bottom: none;
+    }
+    .todo-text {
+      flex: 1;
+      color: #444;
+    }
+    .delete-btn {
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 8px;
+    }
+    .delete-btn:hover {
+      background: #a71d2a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Todo List</h1>
+    <form id="todo-form">
+      <input type="text" id="todo-input" placeholder="Add a new task..." required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="todo-list"></ul>
+  </div>
+  <script>
+    const API_URL = 'api.php';
+    const form = document.getElementById('todo-form');
+    const input = document.getElementById('todo-input');
+    const list = document.getElementById('todo-list');
+
+    // Load todos from API
+    async function loadTodos() {
+      list.innerHTML = '';
+      const res = await fetch(API_URL);
+      const todos = await res.json();
+      todos.forEach(todo => addTodoToUI(todo));
+    }
+
+    // Add todo to UI
+    function addTodoToUI(todo) {
+      const li = document.createElement('li');
+      const span = document.createElement('span');
+      span.className = 'todo-text';
+      span.textContent = todo.task;
+      if (todo.done) span.style.textDecoration = 'line-through';
+
+      // Toggle done button
+      const doneBtn = document.createElement('button');
+      doneBtn.textContent = todo.done ? 'Undone' : 'Done';
+      doneBtn.style.background = todo.done ? '#ffc107' : '#28a745';
+      doneBtn.style.color = '#fff';
+      doneBtn.style.border = 'none';
+      doneBtn.style.borderRadius = '4px';
+      doneBtn.style.padding = '4px 10px';
+      doneBtn.style.cursor = 'pointer';
+      doneBtn.style.fontSize = '14px';
+      doneBtn.onclick = async () => {
+        await fetch(API_URL, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `id=${todo.id}&done=${!todo.done}`
+        });
+        loadTodos();
+      };
+
+      // Delete button
+      const btn = document.createElement('button');
+      btn.className = 'delete-btn';
+      btn.textContent = 'Delete';
+      btn.onclick = async () => {
+        await fetch(API_URL, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `id=${todo.id}`
+        });
+        li.remove();
+      };
+
+      li.appendChild(span);
+      li.appendChild(doneBtn);
+      li.appendChild(btn);
+      list.appendChild(li);
+    }
+
+    // Add todo via API
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const task = input.value.trim();
+      if (task) {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task })
+        });
+        const todo = await res.json();
+        addTodoToUI(todo);
+        input.value = '';
+      }
+    });
+
+    // Initial load
+    loadTodos();
+  </script>
+</body>
+</html>
